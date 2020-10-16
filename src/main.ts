@@ -1,6 +1,7 @@
 import { connect, MqttClient, PacketCallback, StorePutCallback } from 'mqtt';
 import { Packet, IConnackPacket } from 'mqtt-packet';
 import { crypto_sign_keypair, ready, crypto_sign } from 'libsodium-wrappers';
+import { Base32 } from 'base32-ts'
 
 export declare class MqttClientEx extends MqttClient {
         /**
@@ -16,8 +17,13 @@ export declare class MqttClientEx extends MqttClient {
 
 (async () => {
     await ready;
+
+    console.log("Generating new key-pair...")
+
     let initialKeypair = crypto_sign_keypair();
-    const clientId = base32.encode(Buffer.from(initialKeypair.publicKey).toString());
+    const clientId = Base32.encode(Buffer.from(initialKeypair.publicKey));
+
+    console.log("Connecting to SMOKER with clientId:=" + clientId);
 
     var client = connect('mqtt://127.0.0.1', {
         clientId: clientId,
@@ -34,6 +40,7 @@ export declare class MqttClientEx extends MqttClient {
             if (packet.properties.authenticationMethod == 'SMOKER') {
                 const nonce = packet.properties.authenticationData;
                 if (nonce) {
+                    console.log("Received nonce from SMOKER. nonceLength:=" + nonce.length + " bytes")
                     const signedNonce = crypto_sign(nonce, initialKeypair.privateKey);
                     const authPackage = {
                         cmd: 'auth',
