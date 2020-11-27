@@ -1,11 +1,10 @@
-import {connect, MqttClient, PacketCallback, StorePutCallback} from "mqtt";
-import {crypto_sign, crypto_sign_keypair, KeyPair, ready} from "libsodium-wrappers";
-import {Base32} from "base32-ts";
-import {Packet} from "mqtt-packet";
-import {MqttClientEx} from "./MqttClientEx";
+import { connect, MqttClient, PacketCallback } from "mqtt";
+import { crypto_sign, crypto_sign_keypair, KeyPair, ready } from "libsodium-wrappers";
+import { Base32 } from "base32-ts";
+import { IAuthPacket } from "mqtt-packet";
 
 export class SmokerMqttClient {
-    public mqttClient : MqttClientEx;
+    public mqttClient : MqttClient;
 
     public claim(topicName: string) {
 
@@ -20,25 +19,25 @@ export class SmokerMqttClient {
         this.mqttClient = null;
     }
 
-    private async initClient(): Promise<MqttClientEx> {
+    private async initClient(): Promise<MqttClient> {
         let keyPair = await this.generateKeyPair();
-        var client = connect('mqtt://127.0.0.1', {
+        var client = <MqttClient> connect('mqtt://127.0.0.1', {
             clientId: Base32.encode(Buffer.from(keyPair.publicKey)),
             protocolVersion: 5,
             clean: true,
             properties: {
                 authenticationMethod: 'SMOKER'
             }
-        }) as MqttClientEx;
+        });
 
 
-        client.handleAuth = function (packet : Packet) {
+        client.handleAuth = function (packet : IAuthPacket, callback : PacketCallback) {
             if (packet.properties.authenticationMethod == 'SMOKER') {
                 const nonce = packet.properties.authenticationData;
                 if (nonce) {
                     console.log("Received nonce from SMOKER. nonceLength:=" + nonce.length + " bytes")
                     const signedNonce = crypto_sign(nonce, keyPair.privateKey);
-                    const authPackage = {
+                    const authPackage = <IAuthPacket> {
                         cmd: 'auth',
                         reasonCode: 24,
                         properties: {
@@ -50,41 +49,10 @@ export class SmokerMqttClient {
                         }
                     };
 
-                    packet = authPackage as Packet;
+                    callback(null, authPackage);
                 }
             }
         }
-
-        client.on('packetreceive', function (p: Packet) {
-            if (p.cmd.toString() === 'auth') {
-                console.log(JSON.stringify(p));
-                const packet = p as any;
-                if (packet.properties.authenticationMethod == 'SMOKER') {
-                    const nonce = packet.properties.authenticationData;
-                    if (nonce) {
-                        console.log("Received nonce from SMOKER. nonceLength:=" + nonce.length + " bytes")
-                        const signedNonce = crypto_sign(nonce, keyPair.privateKey);
-                        const authPackage = {
-                            cmd: 'auth',
-                            reasonCode: 24,
-                            properties: {
-                                authenticationMethod: 'SMOKER',
-                                authenticationData: Buffer.from([
-                                    ...signedNonce
-                                ]),
-                                reasonString: 'continue'
-                            }
-                        };
-                        if (client) {
-                            client.connected = true;
-                            client._sendPacket(authPackage as Packet);
-                            client.connected = false;
-                        }
-                    }
-                }
-            }
-        })
-
         return client;
     }
 

@@ -1,4 +1,4 @@
-import {SmokerMqttClient} from "./SmokerMqttClient";
+import { SmokerMqttClient } from "./SmokerMqttClient";
 
 let client = new SmokerMqttClient();
 client.connect().then(() => {
