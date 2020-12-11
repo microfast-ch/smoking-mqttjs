@@ -1,4 +1,4 @@
-import {connect, MqttClient, PacketCallback} from "mqtt";
+import {connect, Packet, MqttClient, PacketCallback} from "mqtt";
 import {crypto_sign, crypto_sign_keypair, KeyPair, ready} from "libsodium-wrappers";
 import {Base32} from "base32-ts";
 import { encode as Base64 } from "base64-ts";
@@ -8,53 +8,56 @@ import {Restriction} from "./domain/Restriction";
 import {RestrictionType} from "./domain/RestrictionType";
 import {Permission} from "./domain/Permission";
 import {MqttActivityType} from "./domain/MqttActivityType";
-import {RestrictionSigner} from "./helper/RestrictionSigner";
 
 export class SmokerMqttClient {
-    public mqttClient : MqttClient;
-    public keyPair: KeyPair;
-    public clientId: string;
+    private _mqttClient : MqttClient;
+    private _keyPair: KeyPair;
+    private _clientId: string;
 
-    public claim(topicName: string) {
+    public async claim(topicName: string) : Promise<Packet> {
+        return new Promise(async (resolve, reject) => {
 
-        // setup restriction
-        var restriction = <Restriction> {
-            restrictionType: RestrictionType.Whitelist,
-            topicName: 'restricted/' + this.clientId + '/' + topicName,
-            permissions: [
-                <Permission> {
-                    clientId: "*",
-                    activity: MqttActivityType.Subscribe
-                }
-            ]
-        }
+            // setup restriction
+            var restriction = <Restriction> {
+                restrictionType: RestrictionType.Whitelist,
+                topicName: 'restricted/' + this._clientId + '/' + topicName,
+                permissions: [
+                    <Permission> {
+                        clientId: "*",
+                        activity: MqttActivityType.Subscribe
+                    }
+                ]
+            }
 
-        // wrap restriction and its signature in a claim
-        var claim = <Claim> {
-            restriction: restriction,
-            signature : Base64(RestrictionSigner.signRestriction(restriction, this.keyPair.privateKey))
-        }
+            await ready;
+            var claim = <Claim> {
+                restriction: restriction,
+                signature : Base64(crypto_sign(JSON.stringify(restriction, Object.keys(restriction).sort()), this._keyPair.privateKey))
+            }
 
-        // submit claim to smoker
-        console.log("Sending claim:=" + JSON.stringify(claim));
-        this.mqttClient.publish("access/claim", JSON.stringify(claim));
+            console.log("Sending claim:=" + JSON.stringify(claim));
+            this._mqttClient.publish("access/claim", JSON.stringify(claim), null, (err, result) => {
+                if (err) reject(err)
+                else resolve(result)
+            })
+        })
     }
 
     public async connect() : Promise<void> {
-        this.mqttClient = await this.initClient();
+        this._mqttClient = await this.initClient();
     }
 
     public disconnect() : void {
-        this.mqttClient.end();
-        this.mqttClient = null;
+        this._mqttClient.end();
+        this._mqttClient = null;
     }
 
     private async initClient(): Promise<MqttClient> {
-        this.keyPair = await this.generateKeyPair();
-        this.clientId = Base32.encode(Buffer.from(this.keyPair.publicKey));
+        this._keyPair = await this.generateKeyPair();
+        this._clientId = Base32.encode(Buffer.from(this._keyPair.publicKey));
 
         var client = <MqttClient> connect('mqtt://127.0.0.1', {
-            clientId: this.clientId,
+            clientId: this._clientId,
             protocolVersion: 5,
             clean: true,
             properties: {
@@ -62,14 +65,13 @@ export class SmokerMqttClient {
             }
         });
 
-
         var that = this;
         client.handleAuth = function (packet : IAuthPacket, callback : PacketCallback) {
             if (packet.properties.authenticationMethod == 'SMOKER') {
                 const nonce = packet.properties.authenticationData;
                 if (nonce) {
                     console.log("Received nonce from SMOKER. nonceLength:=" + nonce.length + " bytes")
-                    const signedNonce = crypto_sign(nonce, that.keyPair.privateKey);
+                    const signedNonce = crypto_sign(nonce, that._keyPair.privateKey);
                     const authPackage = <IAuthPacket> {
                         cmd: 'auth',
                         reasonCode: 24, // 0x18 Continue authentication
