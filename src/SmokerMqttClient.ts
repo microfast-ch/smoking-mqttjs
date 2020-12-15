@@ -9,6 +9,9 @@ import {RestrictionType} from "./domain/RestrictionType";
 import {Permission} from "./domain/Permission";
 import {MqttActivityType} from "./domain/MqttActivityType";
 
+// TODO / cevo / maybe copy this code to avoid depedency
+var stringify = require('json-stable-stringify');
+
 export class SmokerMqttClient {
     private _mqttClient : MqttClient;
     private _keyPair: KeyPair;
@@ -32,7 +35,7 @@ export class SmokerMqttClient {
             await ready;
             var claim = <Claim> {
                 restriction: restriction,
-                signature : Base64(crypto_sign(JSON.stringify(restriction, Object.keys(restriction).sort()), this._keyPair.privateKey))
+                signature : Base64(crypto_sign(stringify(restriction), this._keyPair.privateKey))
             }
 
             console.log("Sending claim:=" + JSON.stringify(claim));
@@ -47,9 +50,13 @@ export class SmokerMqttClient {
         this._mqttClient = await this.initClient();
     }
 
-    public disconnect() : void {
-        this._mqttClient.end();
-        this._mqttClient = null;
+    public disconnect() : Promise<void> {
+        return new Promise(async (resolve, reject) => {
+            this._mqttClient.end( null, null,() => {
+                resolve()
+            })
+            this._mqttClient = null;
+        })
     }
 
     private async initClient(): Promise<MqttClient> {

@@ -14,6 +14,7 @@
   "dependencies": {
     "base32-ts": "^1.0.2",
     "base64-ts": "^2.0.1",
+    "json-stable-stringify": "^1.0.1",
     "libsodium-wrappers": "^0.7.8",
     "libsodium-wrappers-sumo": "^0.7.8",
     "mqtt": "github:quickstar/MQTT.js#enhanced-auth-followup"
@@ -21,7 +22,7 @@
   "devDependencies": {
     "@types/libsodium-wrappers": "^0.7.8",
     "@types/node": "^12.12.67",
-    "ts-node": "^9.0.0",
+    "ts-node": "^9.1.1",
     "typescript": "^4.0.3"
   }
 }
