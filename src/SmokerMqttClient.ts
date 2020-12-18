@@ -25,7 +25,7 @@ export class SmokerMqttClient implements ISmokerMqttClient {
     /** @inheritDoc */
     public async unclaim(topicName: string): Promise<Packet> {
         return new Promise(async (resolve, reject) => {
-            console.log("Sending unclaim for topic:=" + topicName);
+            console.debug("Sending unclaim for topic:=" + topicName);
             this._mqttClient.publish(this._unclaimTopic, JSON.stringify(topicName), null, (err, result) => {
                 if (err) reject(err)
                 else resolve(result)
@@ -55,7 +55,7 @@ export class SmokerMqttClient implements ISmokerMqttClient {
                 signature: toBase64(crypto_sign(stableStringify(restriction, null), this._keyPair.privateKey))
             }
 
-            console.log("Sending claim:=" + JSON.stringify(claim));
+            console.debug("Sending claim:=" + JSON.stringify(claim));
             this._mqttClient.publish(this._claimTopic, JSON.stringify(claim), null, (err, result) => {
                 if (err) reject(err)
                 else resolve(result)
@@ -96,7 +96,7 @@ export class SmokerMqttClient implements ISmokerMqttClient {
             if (packet.properties.authenticationMethod == that._smokerAuthMethod) {
                 const nonce = packet.properties.authenticationData;
                 if (nonce) {
-                    console.log("Received nonce from SMOKER. nonceLength:=" + nonce.length + " bytes")
+                    console.debug("Received nonce from SMOKER. nonceLength:=" + nonce.length + " bytes")
                     const signedNonce = crypto_sign(nonce, that._keyPair.privateKey);
                     const authPackage = <IAuthPacket>{
                         cmd: 'auth',
@@ -119,7 +119,7 @@ export class SmokerMqttClient implements ISmokerMqttClient {
 
     private generateRestrictedTopic(topicName: string): string {
         if (topicName.startsWith(this._restrictedPrefix)) {
-            console.log("Guess topic ist already in correct format. topicName:=" + topicName);
+            console.debug("Guess topic ist already in correct format. topicName:=" + topicName);
             return topicName;
         }
         return this._restrictedPrefix + '/' + this._clientId + '/' + topicName;
@@ -127,7 +127,7 @@ export class SmokerMqttClient implements ISmokerMqttClient {
 
     private async generateKeyPair(): Promise<KeyPair> {
         await ready;
-        console.log("Generating new key-pair...")
+        console.debug("Generating new key-pair...")
         return crypto_sign_keypair();
     }
 }
