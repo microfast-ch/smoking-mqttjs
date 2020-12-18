@@ -19,7 +19,7 @@ export interface ISmokerMqttClient {
      * @param keyPair optional keypair for authentication, if none is provided a new one will be generated
      * @param TODO / cevo / parameterize IClientOptions? Maybe wrap it to never allow custom clinetId's / non smoker auth?
      */
-    connect(keyPair: KeyPair): Promise<void>;
+    connect(keyPair?: KeyPair): Promise<void>;
 
     /**
      * Disconnect from the smoker broker

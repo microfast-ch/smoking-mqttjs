@@ -10,23 +10,20 @@ import {ISmokerMqttClient} from "./ISmokerMqttClient";
 import {toBase32} from "./lib/base32";
 import {fromByteArray as toBase64} from "./lib/base64/index"
 import {stableStringify} from "./lib/json-stable-stringify";
+import {ISmokerMqttClientOptions} from "./SmokerMqttClientOptions";
 
 export class SmokerMqttClient implements ISmokerMqttClient {
-    // TODO / cevo / candidates to outsource in config
-    private _claimTopic = "access/claim";
-    private _unclaimTopic = "access/unclaim";
-    private _restrictedPrefix = "restricted";
-    private _smokerAuthMethod = "SMOKER";
-
     private _mqttClient: MqttClient;
     private _keyPair: KeyPair;
     private _clientId: string;
+
+    constructor(private _opts: ISmokerMqttClientOptions) { }
 
     /** @inheritDoc */
     public async unclaim(topicName: string): Promise<Packet> {
         return new Promise(async (resolve, reject) => {
             console.debug("Sending unclaim for topic:=" + topicName);
-            this._mqttClient.publish(this._unclaimTopic, JSON.stringify(topicName), null, (err, result) => {
+            this._mqttClient.publish(this._opts.unclaimTopic, JSON.stringify(topicName), null, (err, result) => {
                 if (err) reject(err)
                 else resolve(result)
             })
@@ -56,7 +53,7 @@ export class SmokerMqttClient implements ISmokerMqttClient {
             }
 
             console.debug("Sending claim:=" + JSON.stringify(claim));
-            this._mqttClient.publish(this._claimTopic, JSON.stringify(claim), null, (err, result) => {
+            this._mqttClient.publish(this._opts.claimTopic, JSON.stringify(claim), null, (err, result) => {
                 if (err) reject(err)
                 else resolve(result)
             })
@@ -64,8 +61,8 @@ export class SmokerMqttClient implements ISmokerMqttClient {
     }
 
     /** @inheritDoc */
-    public async connect(keyPair: KeyPair = null): Promise<void> {
-        this._mqttClient = await this.initClient();
+    public async connect(keyPair?: KeyPair): Promise<void> {
+        this._mqttClient = await this.initClient(keyPair);
     }
 
     /** @inheritDoc */
@@ -78,7 +75,7 @@ export class SmokerMqttClient implements ISmokerMqttClient {
         })
     }
 
-    private async initClient(keyPair: KeyPair = null): Promise<MqttClient> {
+    private async initClient(keyPair?: KeyPair): Promise<MqttClient> {
         this._keyPair = keyPair ?? await this.generateKeyPair();
         this._clientId = toBase32(Buffer.from(this._keyPair.publicKey));
 
@@ -87,13 +84,13 @@ export class SmokerMqttClient implements ISmokerMqttClient {
             protocolVersion: 5,
             clean: true,
             properties: {
-                authenticationMethod: this._smokerAuthMethod
+                authenticationMethod: this._opts.smokerAuthMethod
             }
         });
 
         var that = this;
         client.handleAuth = function (packet: IAuthPacket, callback: PacketCallback) {
-            if (packet.properties.authenticationMethod == that._smokerAuthMethod) {
+            if (packet.properties.authenticationMethod == that._opts.smokerAuthMethod) {
                 const nonce = packet.properties.authenticationData;
                 if (nonce) {
                     console.debug("Received nonce from SMOKER. nonceLength:=" + nonce.length + " bytes")
@@ -102,7 +99,7 @@ export class SmokerMqttClient implements ISmokerMqttClient {
                         cmd: 'auth',
                         reasonCode: 24, // 0x18 Continue authentication
                         properties: {
-                            authenticationMethod: that._smokerAuthMethod,
+                            authenticationMethod: that._opts.smokerAuthMethod,
                             authenticationData: Buffer.from([
                                 ...signedNonce
                             ]),
@@ -118,11 +115,11 @@ export class SmokerMqttClient implements ISmokerMqttClient {
     }
 
     private generateRestrictedTopic(topicName: string): string {
-        if (topicName.startsWith(this._restrictedPrefix)) {
+        if (topicName.startsWith(this._opts.restrictedPrefix)) {
             console.debug("Guess topic ist already in correct format. topicName:=" + topicName);
             return topicName;
         }
-        return this._restrictedPrefix + '/' + this._clientId + '/' + topicName;
+        return this._opts.restrictedPrefix + '/' + this._clientId + '/' + topicName;
     }
 
     private async generateKeyPair(): Promise<KeyPair> {
