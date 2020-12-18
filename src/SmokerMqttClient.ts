@@ -13,17 +13,41 @@ import {MqttActivityType} from "./domain/MqttActivityType";
 var stringify = require('json-stable-stringify');
 
 export class SmokerMqttClient {
+    // TODO / cevo / candidates to outsource in config
+    private _claimTopic = "access/claim";
+    private _unclaimTopic = "access/unclaim";
+    private _restrictedPrefix = "restricted";
+    private _smokerAuthMethod = "SMOKER";
+
     private _mqttClient : MqttClient;
     private _keyPair: KeyPair;
     private _clientId: string;
 
+    /**
+     * Unclaim a topic
+     * @param topicName the topic to be unclaimed. Can be either in smoker-format or not. If not it will be formatted.
+     */
+    public async unclaim(topicName: string) : Promise<Packet> {
+        return new Promise(async (resolve, reject) => {
+            console.log("Sending unclaim for topic:="  + topicName);
+            this._mqttClient.publish(this._unclaimTopic, JSON.stringify(topicName), null, (err, result) => {
+                if (err) reject(err)
+                else resolve(result)
+            })
+        })
+    }
+
+    /**
+     * Claim a topic
+     * @param topicName the topic to be claimed. Can be either in smoker-format or not. If not it will be formatted.
+     */
     public async claim(topicName: string) : Promise<Packet> {
         return new Promise(async (resolve, reject) => {
 
             // setup restriction
             var restriction = <Restriction> {
                 restrictionType: RestrictionType.Whitelist,
-                topicName: 'restricted/' + this._clientId + '/' + topicName,
+                topicName: this.generateRestrictedTopic(topicName),
                 permissions: [
                     <Permission> {
                         clientId: "*",
@@ -39,14 +63,19 @@ export class SmokerMqttClient {
             }
 
             console.log("Sending claim:=" + JSON.stringify(claim));
-            this._mqttClient.publish("access/claim", JSON.stringify(claim), null, (err, result) => {
+            this._mqttClient.publish(this._claimTopic, JSON.stringify(claim), null, (err, result) => {
                 if (err) reject(err)
                 else resolve(result)
             })
         })
     }
 
-    public async connect() : Promise<void> {
+    /**
+     * Connect to a smoker broker
+     * @param keyPair optional keypair for authentication, if none is provided a new one will be generated
+     * @param TODO / cevo / parameterize IClientOptions? Maybe wrap it to never allow custom clinetId's / non smoker auth?
+     */
+    public async connect(keyPair : KeyPair = null) : Promise<void> {
         this._mqttClient = await this.initClient();
     }
 
@@ -59,8 +88,8 @@ export class SmokerMqttClient {
         })
     }
 
-    private async initClient(): Promise<MqttClient> {
-        this._keyPair = await this.generateKeyPair();
+    private async initClient(keyPair : KeyPair = null): Promise<MqttClient> {
+        this._keyPair = keyPair ?? await this.generateKeyPair();
         this._clientId = Base32.encode(Buffer.from(this._keyPair.publicKey));
 
         var client = <MqttClient> connect('mqtt://127.0.0.1', {
@@ -68,13 +97,13 @@ export class SmokerMqttClient {
             protocolVersion: 5,
             clean: true,
             properties: {
-                authenticationMethod: 'SMOKER'
+                authenticationMethod: this._smokerAuthMethod
             }
         });
 
         var that = this;
         client.handleAuth = function (packet : IAuthPacket, callback : PacketCallback) {
-            if (packet.properties.authenticationMethod == 'SMOKER') {
+            if (packet.properties.authenticationMethod == that._smokerAuthMethod) {
                 const nonce = packet.properties.authenticationData;
                 if (nonce) {
                     console.log("Received nonce from SMOKER. nonceLength:=" + nonce.length + " bytes")
@@ -83,7 +112,7 @@ export class SmokerMqttClient {
                         cmd: 'auth',
                         reasonCode: 24, // 0x18 Continue authentication
                         properties: {
-                            authenticationMethod: 'SMOKER',
+                            authenticationMethod: that._smokerAuthMethod,
                             authenticationData: Buffer.from([
                                 ...signedNonce
                             ]),
@@ -98,7 +127,15 @@ export class SmokerMqttClient {
         return client;
     }
 
-    public async generateKeyPair(): Promise<KeyPair> {
+    private generateRestrictedTopic(topicName : string) : string {
+        if (topicName.startsWith("restricted")) {
+            console.log("Guess topic ist already in correct format. topicName:=" + topicName);
+            return topicName;
+        }
+        return this._restrictedPrefix + '/' + this._clientId + '/' + topicName;
+    }
+
+    private async generateKeyPair(): Promise<KeyPair> {
         await ready;
         console.log("Generating new key-pair...")
         return crypto_sign_keypair();
