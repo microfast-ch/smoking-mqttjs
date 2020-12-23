@@ -1,4 +1,4 @@
 export enum RestrictionType {
-    Blacklist= "BLACKLIST",
+    Blacklist = "BLACKLIST",
     Whitelist = "WHITELIST"
 }

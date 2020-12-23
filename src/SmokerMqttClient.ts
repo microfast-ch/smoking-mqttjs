@@ -3,7 +3,8 @@ import {
     IClientPublishOptions,
     IClientSubscribeOptions,
     ISubscriptionGrant,
-    MqttClient, OnMessageCallback,
+    MqttClient,
+    OnMessageCallback,
     Packet,
     PacketCallback
 } from "mqtt";
@@ -30,8 +31,8 @@ export class SmokerMqttClient implements ISmokerMqttClient {
     }
 
     /** @inheritDoc */
-    public async unclaim(topicName: string): Promise<Packet> {
-        let smokerTopic = this.smokerizeTopic(topicName);
+    public async unclaim(topic: string): Promise<Packet> {
+        let smokerTopic = this.smokerizeTopic(topic);
         return new Promise(async (resolve, reject) => {
             console.debug("Sending unclaim for topic:=" + smokerTopic);
             this._mqttClient.publish(this._opts.unclaimTopic, smokerTopic, <IClientPublishOptions>{qos: 1}, (err, result) => {
@@ -42,13 +43,13 @@ export class SmokerMqttClient implements ISmokerMqttClient {
     }
 
     /** @inheritDoc */
-    public async claim(topicName: string): Promise<Packet> {
+    public async claim(topic: string): Promise<Packet> {
         return new Promise(async (resolve, reject) => {
 
             // setup restriction
             var restriction = <Restriction>{
                 restrictionType: RestrictionType.Whitelist,
-                topicName: this.smokerizeTopic(topicName),
+                topicName: this.smokerizeTopic(topic),
                 permissions: [
                     <Permission>{
                         clientId: "*",
@@ -72,9 +73,9 @@ export class SmokerMqttClient implements ISmokerMqttClient {
     }
 
     /** @inheritDoc */
-    publish(topicName: string, message: string | Buffer, opts?: IClientPublishOptions): Promise<Packet> {
+    publish(topic: string, message: string | Buffer, opts?: IClientPublishOptions): Promise<Packet> {
         return new Promise((resolve, reject) => {
-            this._mqttClient.publish(topicName, message, opts, (err, result) => {
+            this._mqttClient.publish(topic, message, opts, (err, result) => {
                 if (err) reject(err)
                 else resolve(result)
             })
@@ -83,8 +84,8 @@ export class SmokerMqttClient implements ISmokerMqttClient {
 
     /** @inheritDoc */
     publishClaimed(topic: string, message: string | Buffer, opts?: IClientPublishOptions): Promise<Packet> {
-        let topicName = this.smokerizeTopic(topic);
-        return this.publish(topicName, message, opts);
+        let smokerTopic = this.smokerizeTopic(topic);
+        return this.publish(smokerTopic, message, opts);
     }
 
     /** @inheritDoc */
@@ -99,8 +100,8 @@ export class SmokerMqttClient implements ISmokerMqttClient {
 
     /** @inheritDoc */
     subscribeClaimed(topic: string, opts?: IClientSubscribeOptions): Promise<ISubscriptionGrant[]> {
-        let topicName = this.smokerizeTopic(topic);
-        return this.subscribe(topicName, opts);
+        let smokerTopic = this.smokerizeTopic(topic);
+        return this.subscribe(smokerTopic, opts);
     }
 
     /** @inheritDoc */
@@ -116,6 +117,11 @@ export class SmokerMqttClient implements ISmokerMqttClient {
             })
             this._mqttClient = null;
         })
+    }
+
+    on(event: "message", cb: OnMessageCallback): ISmokerMqttClient {
+        this._mqttClient.on(event, cb);
+        return this;
     }
 
     private async initClient(keyPair?: KeyPair): Promise<MqttClient> {
@@ -157,22 +163,17 @@ export class SmokerMqttClient implements ISmokerMqttClient {
         return client;
     }
 
-    private smokerizeTopic(topicName: string): string {
-        if (topicName.startsWith(this._opts.restrictedPrefix)) {
-            console.debug("Guess topic ist already in correct format. topicName:=" + topicName);
-            return topicName;
+    private smokerizeTopic(topic: string): string {
+        if (topic.startsWith(this._opts.restrictedPrefix)) {
+            console.debug("Guess topic ist already in correct format. topic:=" + topic);
+            return topic;
         }
-        return this._opts.restrictedPrefix + '/' + this._clientId + '/' + topicName;
+        return this._opts.restrictedPrefix + '/' + this._clientId + '/' + topic;
     }
 
     private async generateKeyPair(): Promise<KeyPair> {
         await ready;
         console.debug("Generating new key-pair...")
         return crypto_sign_keypair();
-    }
-
-    on(event: "message", cb: OnMessageCallback): ISmokerMqttClient {
-        this._mqttClient.on(event, cb);
-        return this;
     }
 }

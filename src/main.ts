@@ -39,7 +39,7 @@ client.connect(null).then(async () => {
     await client
         .unclaim(testTopic)
         .catch(reason => {
-           console.error("Coult not unclaim topic. reason:=" + reason)
+            console.error("Coult not unclaim topic. reason:=" + reason)
         });
 
     // publish to unclaimed

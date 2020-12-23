@@ -1,5 +1,5 @@
 export enum MqttActivityType {
-    All= "ALL",
-    Publish= "PUBLISH",
+    All = "ALL",
+    Publish = "PUBLISH",
     Subscribe = "SUBSCRIBE"
 }

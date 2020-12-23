@@ -1,11 +1,4 @@
-import {
-    IClientPublishOptions,
-    IClientSubscribeOptions,
-    ISubscriptionGrant,
-    MqttClient, OnMessageCallback,
-    Packet,
-    PacketCallback
-} from "mqtt";
+import {IClientPublishOptions, IClientSubscribeOptions, ISubscriptionGrant, OnMessageCallback, Packet} from "mqtt";
 import {KeyPair} from "libsodium-wrappers";
 
 export interface ISmokerMqttClient {
@@ -24,7 +17,7 @@ export interface ISmokerMqttClient {
     /**
      * Normal publish of a message
      */
-    publish(topic: string, message: string|Buffer, opts?: IClientPublishOptions): Promise<Packet>;
+    publish(topic: string, message: string | Buffer, opts?: IClientPublishOptions): Promise<Packet>;
 
     /**
      * Publish to an already claimed topic
@@ -32,7 +25,7 @@ export interface ISmokerMqttClient {
      * @param message the message to be published
      * @param opts the publish opts
      */
-    publishClaimed(topic: string, message: string|Buffer, opts?: IClientPublishOptions): Promise<Packet>;
+    publishClaimed(topic: string, message: string | Buffer, opts?: IClientPublishOptions): Promise<Packet>;
 
     /**
      * Normal subscription of one or several topics
