@@ -1,6 +1,6 @@
-import {ISmokerMqttClient} from "./ISmokerMqttClient";
-import {SmokerMqttClient} from "./SmokerMqttClient";
-import {ISmokerMqttClientOptions} from "./SmokerMqttClientOptions";
+import {ISmokerMqttClient} from "../ISmokerMqttClient";
+import {SmokerMqttClient} from "../SmokerMqttClient";
+import {ISmokerMqttClientOptions} from "../SmokerMqttClientOptions";
 
 export class SmokerMqttClientBuilder {
     private brokerUrl: string = "mqtt://127.0.0.1";

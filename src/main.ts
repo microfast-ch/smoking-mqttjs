@@ -1,6 +1,7 @@
 import {ISmokerMqttClient} from "./ISmokerMqttClient";
-import {SmokerMqttClientBuilder} from "./SmokerMqttClientBuilder";
+import {SmokerMqttClientBuilder} from "./builders/SmokerMqttClientBuilder";
 import {IClientPublishOptions} from "mqtt";
+import {RestrictionBuilder} from "./builders/RestrictionBuilder";
 
 let client: ISmokerMqttClient = new SmokerMqttClientBuilder()
     .withBrokerUrl("mqtt://127.0.0.1")
@@ -8,15 +9,21 @@ let client: ISmokerMqttClient = new SmokerMqttClientBuilder()
 
 client.connect(null).then(async () => {
 
-    let testTopic = "geil/es/geit";
-
+    // event handlers
     client.on('message', function (topic, message) {
         console.log(message.toString())
     })
 
+    // setup a restriction for claiming
+    let testTopic = "geil/es/geit";
+    let allowAllRestriction = new RestrictionBuilder()
+        .withTopic(testTopic)
+        .withAllowAllPermission()
+        .build()
+
     // claim
     await client
-        .claim(testTopic)
+        .claim(allowAllRestriction)
         .catch(reason => {
             console.error("Could not claim topic. reason:=" + reason)
         });
@@ -42,7 +49,7 @@ client.connect(null).then(async () => {
             console.error("Coult not unclaim topic. reason:=" + reason)
         });
 
-    // publish to unclaimed
+    // publish to unclaimed -> NOT AUTHORIZED!
     await client
         .publishClaimed(testTopic, "Publish to an unclaimed topic is not allowed", <IClientPublishOptions>{qos: 1})
         .catch(reason => {

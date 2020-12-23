@@ -8,16 +8,13 @@ import {
     Packet,
     PacketCallback
 } from "mqtt";
-import {crypto_sign, crypto_sign_keypair, KeyPair, ready} from "libsodium-wrappers";
+import {crypto_sign, crypto_sign_keypair, KeyPair, ready as libsodiumReady} from "libsodium-wrappers";
 import {IAuthPacket} from "mqtt-packet";
 import {Claim} from "./domain/Claim";
 import {Restriction} from "./domain/Restriction";
-import {RestrictionType} from "./domain/RestrictionType";
-import {Permission} from "./domain/Permission";
-import {MqttActivityType} from "./domain/MqttActivityType";
 import {ISmokerMqttClient} from "./ISmokerMqttClient";
 import {toBase32} from "./lib/base32";
-import {fromByteArray as toBase64} from "./lib/base64/index"
+import {fromByteArray as toBase64} from "./lib/base64"
 import {stableStringify} from "./lib/json-stable-stringify";
 import {ISmokerMqttClientOptions} from "./SmokerMqttClientOptions";
 
@@ -43,22 +40,12 @@ export class SmokerMqttClient implements ISmokerMqttClient {
     }
 
     /** @inheritDoc */
-    public async claim(topic: string): Promise<Packet> {
+    public async claim(restriction: Restriction): Promise<Packet> {
         return new Promise(async (resolve, reject) => {
+            // make sure topic is in correct format
+            restriction.topicName = this.smokerizeTopic(restriction.topicName);
 
-            // setup restriction
-            var restriction = <Restriction>{
-                restrictionType: RestrictionType.Whitelist,
-                topicName: this.smokerizeTopic(topic),
-                permissions: [
-                    <Permission>{
-                        clientId: "*",
-                        activity: MqttActivityType.Subscribe
-                    }
-                ]
-            }
-
-            await ready;
+            await libsodiumReady;
             let claim = <Claim>{
                 restriction: restriction,
                 signature: toBase64(crypto_sign(stableStringify(restriction, null), this._keyPair.privateKey))
@@ -172,7 +159,7 @@ export class SmokerMqttClient implements ISmokerMqttClient {
     }
 
     private async generateKeyPair(): Promise<KeyPair> {
-        await ready;
+        await libsodiumReady;
         console.debug("Generating new key-pair...")
         return crypto_sign_keypair();
     }

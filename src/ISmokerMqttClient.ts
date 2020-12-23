@@ -1,5 +1,6 @@
 import {IClientPublishOptions, IClientSubscribeOptions, ISubscriptionGrant, OnMessageCallback, Packet} from "mqtt";
 import {KeyPair} from "libsodium-wrappers";
+import {Restriction} from "./domain/Restriction";
 
 export interface ISmokerMqttClient {
     /**
@@ -9,10 +10,10 @@ export interface ISmokerMqttClient {
     unclaim(topic: string): Promise<Packet>;
 
     /**
-     * Unclaim a topic
-     * @param topicName the topic to be unclaimed. Can be either in smoker-format or not. If not it will be formatted correctly.
+     * Claim a topic. The given {@type Restriction} must get wrapped an signed into a {@type Claim}
+     * @param restriction the restriction to be used for the claim. Use {@type RestrictionBuilder} to build a restriction.
      */
-    claim(topic: string): Promise<Packet>;
+    claim(restriction: Restriction): Promise<Packet>;
 
     /**
      * Normal publish of a message
