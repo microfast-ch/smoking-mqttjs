@@ -1,18 +1,50 @@
-import {Packet} from "mqtt";
+import {
+    IClientPublishOptions,
+    IClientSubscribeOptions,
+    ISubscriptionGrant,
+    MqttClient, OnMessageCallback,
+    Packet,
+    PacketCallback
+} from "mqtt";
 import {KeyPair} from "libsodium-wrappers";
 
 export interface ISmokerMqttClient {
     /**
      * Unclaim a topic
-     * @param topicName the topic to be unclaimed. Can be either in smoker-format or not. If not it will be formatted.
+     * @param topicName the topic to be unclaimed. Can be either in smoker-format or not. If not it will be formatted correctly.
      */
-    unclaim(topicName: string): Promise<Packet>;
+    unclaim(topic: string): Promise<Packet>;
 
     /**
      * Unclaim a topic
-     * @param topicName the topic to be unclaimed. Can be either in smoker-format or not. If not it will be formatted.
+     * @param topicName the topic to be unclaimed. Can be either in smoker-format or not. If not it will be formatted correctly.
      */
-    claim(topicName: string): Promise<Packet>;
+    claim(topic: string): Promise<Packet>;
+
+    /**
+     * Normal publish of a message
+     */
+    publish(topic: string, message: string|Buffer, opts?: IClientPublishOptions): Promise<Packet>;
+
+    /**
+     * Publish to an already claimed topic
+     * @param topic the topic to publish to. Can be either in smoker-format or not. If not it will be formatted correctly.
+     * @param message the message to be published
+     * @param opts the publish opts
+     */
+    publishClaimed(topic: string, message: string|Buffer, opts?: IClientPublishOptions): Promise<Packet>;
+
+    /**
+     * Normal subscription of one or several topics
+     */
+    subscribe(topic: string | string[], opts?: IClientSubscribeOptions): Promise<ISubscriptionGrant[]>;
+
+    /**
+     * Subscribe to an already claimed topic
+     * @param topic the topic to be subscribed. Can be either in smoker-format or not. If not it will be formatted correctly.
+     * @param opts the subscription opts
+     */
+    subscribeClaimed(topic: string, opts?: IClientSubscribeOptions): Promise<ISubscriptionGrant[]>;
 
     /**
      * Connect to a smoker broker
@@ -25,4 +57,6 @@ export interface ISmokerMqttClient {
      * Disconnect from the smoker broker
      */
     disconnect(): Promise<void>;
+
+    on(event: 'message', cb: OnMessageCallback): ISmokerMqttClient;
 }

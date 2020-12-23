@@ -1,4 +1,12 @@
-import {connect, IClientPublishOptions, MqttClient, Packet, PacketCallback} from "mqtt";
+import {
+    connect,
+    IClientPublishOptions,
+    IClientSubscribeOptions,
+    ISubscriptionGrant,
+    MqttClient, OnMessageCallback,
+    Packet,
+    PacketCallback
+} from "mqtt";
 import {crypto_sign, crypto_sign_keypair, KeyPair, ready} from "libsodium-wrappers";
 import {IAuthPacket} from "mqtt-packet";
 import {Claim} from "./domain/Claim";
@@ -17,13 +25,16 @@ export class SmokerMqttClient implements ISmokerMqttClient {
     private _keyPair: KeyPair;
     private _clientId: string;
 
-    constructor(private _opts: ISmokerMqttClientOptions) { }
+    constructor(private _opts: ISmokerMqttClientOptions) {
+        // empty yet
+    }
 
     /** @inheritDoc */
     public async unclaim(topicName: string): Promise<Packet> {
+        let smokerTopic = this.smokerizeTopic(topicName);
         return new Promise(async (resolve, reject) => {
-            console.debug("Sending unclaim for topic:=" + topicName);
-            this._mqttClient.publish(this._opts.unclaimTopic, JSON.stringify(topicName), <IClientPublishOptions>{ qos: 1 }, (err, result) => {
+            console.debug("Sending unclaim for topic:=" + smokerTopic);
+            this._mqttClient.publish(this._opts.unclaimTopic, smokerTopic, <IClientPublishOptions>{qos: 1}, (err, result) => {
                 if (err) reject(err)
                 else resolve(result)
             })
@@ -37,7 +48,7 @@ export class SmokerMqttClient implements ISmokerMqttClient {
             // setup restriction
             var restriction = <Restriction>{
                 restrictionType: RestrictionType.Whitelist,
-                topicName: this.generateRestrictedTopic(topicName),
+                topicName: this.smokerizeTopic(topicName),
                 permissions: [
                     <Permission>{
                         clientId: "*",
@@ -47,17 +58,49 @@ export class SmokerMqttClient implements ISmokerMqttClient {
             }
 
             await ready;
-            var claim = <Claim>{
+            let claim = <Claim>{
                 restriction: restriction,
                 signature: toBase64(crypto_sign(stableStringify(restriction, null), this._keyPair.privateKey))
             }
 
             console.debug("Sending claim:=" + JSON.stringify(claim));
-            this._mqttClient.publish(this._opts.claimTopic, JSON.stringify(claim), <IClientPublishOptions>{ qos: 1 }, (err, result) => {
+            this._mqttClient.publish(this._opts.claimTopic, JSON.stringify(claim), <IClientPublishOptions>{qos: 1}, (err, result) => {
                 if (err) reject(err)
                 else resolve(result)
             })
         })
+    }
+
+    /** @inheritDoc */
+    publish(topicName: string, message: string | Buffer, opts?: IClientPublishOptions): Promise<Packet> {
+        return new Promise((resolve, reject) => {
+            this._mqttClient.publish(topicName, message, opts, (err, result) => {
+                if (err) reject(err)
+                else resolve(result)
+            })
+        })
+    }
+
+    /** @inheritDoc */
+    publishClaimed(topic: string, message: string | Buffer, opts?: IClientPublishOptions): Promise<Packet> {
+        let topicName = this.smokerizeTopic(topic);
+        return this.publish(topicName, message, opts);
+    }
+
+    /** @inheritDoc */
+    subscribe(topic: string | string[], opts?: IClientSubscribeOptions): Promise<ISubscriptionGrant[]> {
+        return new Promise((resolve, reject) => {
+            this._mqttClient.subscribe(topic, opts, (err, result) => {
+                if (err) reject(err)
+                else resolve(result)
+            })
+        })
+    }
+
+    /** @inheritDoc */
+    subscribeClaimed(topic: string, opts?: IClientSubscribeOptions): Promise<ISubscriptionGrant[]> {
+        let topicName = this.smokerizeTopic(topic);
+        return this.subscribe(topicName, opts);
     }
 
     /** @inheritDoc */
@@ -79,7 +122,7 @@ export class SmokerMqttClient implements ISmokerMqttClient {
         this._keyPair = keyPair ?? await this.generateKeyPair();
         this._clientId = toBase32(Buffer.from(this._keyPair.publicKey));
 
-        var client = <MqttClient>connect('mqtt://127.0.0.1', {
+        var client = <MqttClient>connect(this._opts.brokerUrl, {
             clientId: this._clientId,
             protocolVersion: 5,
             clean: true,
@@ -114,7 +157,7 @@ export class SmokerMqttClient implements ISmokerMqttClient {
         return client;
     }
 
-    private generateRestrictedTopic(topicName: string): string {
+    private smokerizeTopic(topicName: string): string {
         if (topicName.startsWith(this._opts.restrictedPrefix)) {
             console.debug("Guess topic ist already in correct format. topicName:=" + topicName);
             return topicName;
@@ -126,5 +169,10 @@ export class SmokerMqttClient implements ISmokerMqttClient {
         await ready;
         console.debug("Generating new key-pair...")
         return crypto_sign_keypair();
+    }
+
+    on(event: "message", cb: OnMessageCallback): ISmokerMqttClient {
+        this._mqttClient.on(event, cb);
+        return this;
     }
 }

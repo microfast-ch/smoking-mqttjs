@@ -3,6 +3,8 @@ import {SmokerMqttClient} from "./SmokerMqttClient";
 import {ISmokerMqttClientOptions} from "./SmokerMqttClientOptions";
 
 export class SmokerMqttClientBuilder {
+    private brokerUrl: string = "mqtt://127.0.0.1";
+
     private claimTopic: string = "access/claim";
 
     private unclaimTopic: string = "access/unclaim";
@@ -31,8 +33,14 @@ export class SmokerMqttClientBuilder {
         return this;
     }
 
+    public withBrokerUrl(value: string): SmokerMqttClientBuilder {
+        this.brokerUrl = value;
+        return this;
+    }
+
     public build(): ISmokerMqttClient {
         return new SmokerMqttClient(<ISmokerMqttClientOptions>{
+            brokerUrl: this.brokerUrl,
             unclaimTopic: this.unclaimTopic,
             claimTopic: this.claimTopic,
             restrictedPrefix: this.restrictedPrefix,

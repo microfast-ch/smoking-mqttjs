@@ -1,4 +1,10 @@
 export interface ISmokerMqttClientOptions {
+
+    /**
+     * The broker URL to connect to. Default: "mqtt://127.0.0.1"
+     */
+    brokerUrl: string
+
     /**
      * Smoker claim topic. Default: "access/claim"
      */
