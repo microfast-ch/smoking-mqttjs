@@ -1,4 +1,4 @@
-import {connect, MqttClient, Packet, PacketCallback} from "mqtt";
+import {connect, IClientPublishOptions, MqttClient, Packet, PacketCallback} from "mqtt";
 import {crypto_sign, crypto_sign_keypair, KeyPair, ready} from "libsodium-wrappers";
 import {IAuthPacket} from "mqtt-packet";
 import {Claim} from "./domain/Claim";
@@ -23,7 +23,7 @@ export class SmokerMqttClient implements ISmokerMqttClient {
     public async unclaim(topicName: string): Promise<Packet> {
         return new Promise(async (resolve, reject) => {
             console.debug("Sending unclaim for topic:=" + topicName);
-            this._mqttClient.publish(this._opts.unclaimTopic, JSON.stringify(topicName), null, (err, result) => {
+            this._mqttClient.publish(this._opts.unclaimTopic, JSON.stringify(topicName), <IClientPublishOptions>{ qos: 1 }, (err, result) => {
                 if (err) reject(err)
                 else resolve(result)
             })
@@ -53,7 +53,7 @@ export class SmokerMqttClient implements ISmokerMqttClient {
             }
 
             console.debug("Sending claim:=" + JSON.stringify(claim));
-            this._mqttClient.publish(this._opts.claimTopic, JSON.stringify(claim), null, (err, result) => {
+            this._mqttClient.publish(this._opts.claimTopic, JSON.stringify(claim), <IClientPublishOptions>{ qos: 1 }, (err, result) => {
                 if (err) reject(err)
                 else resolve(result)
             })
