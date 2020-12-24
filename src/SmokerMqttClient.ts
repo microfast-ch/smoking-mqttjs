@@ -10,8 +10,7 @@ import {
 } from "mqtt";
 import {crypto_sign, crypto_sign_keypair, KeyPair, ready as libsodiumReady} from "libsodium-wrappers";
 import {IAuthPacket} from "mqtt-packet";
-import {Claim} from "./domain/Claim";
-import {Restriction} from "./domain/Restriction";
+import {Claim, Restriction} from "./domain";
 import {ISmokerMqttClient} from "./ISmokerMqttClient";
 import {toBase32} from "./lib/base32";
 import {fromByteArray as toBase64} from "./lib/base64"

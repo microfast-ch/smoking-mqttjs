@@ -1,6 +1,6 @@
 import {IClientPublishOptions, IClientSubscribeOptions, ISubscriptionGrant, OnMessageCallback, Packet} from "mqtt";
 import {KeyPair} from "libsodium-wrappers";
-import {Restriction} from "./domain/Restriction";
+import {Restriction} from "./domain";
 
 export interface ISmokerMqttClient {
     /**

@@ -1,7 +1,6 @@
 import {ISmokerMqttClient} from "./ISmokerMqttClient";
-import {SmokerMqttClientBuilder} from "./builders/SmokerMqttClientBuilder";
+import {SmokerMqttClientBuilder, RestrictionBuilder} from "./builders";
 import {IClientPublishOptions} from "mqtt";
-import {RestrictionBuilder} from "./builders/RestrictionBuilder";
 
 let client: ISmokerMqttClient = new SmokerMqttClientBuilder()
     .withBrokerUrl("mqtt://127.0.0.1")
