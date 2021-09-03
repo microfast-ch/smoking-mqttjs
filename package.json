@@ -15,7 +15,7 @@
     "watch-ts": "tsc -w"
   },
   "dependencies": {
-    "libsodium-wrappers": "^0.7.8",
+    "libsodium-wrappers": "^0.7.9",
     "mqtt": "github:quickstar/MQTT.js#master"
   },
   "devDependencies": {
