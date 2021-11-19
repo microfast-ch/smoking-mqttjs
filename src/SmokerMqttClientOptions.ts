@@ -1,8 +1,16 @@
 import {Store} from "mqtt/types/lib/store";
-import {QoS} from "mqtt-packet";
 import {LastWill} from "./domain/LastWill";
 
 export interface ISmokerMqttClientOptions {
+    /**
+     * The outgoingStore to store outgoing packets. Default: null
+     */
+    outgoingStore?: Store;
+
+    /**
+     * The IncomingStore to store incoming Packets. Default: null
+     */
+    incomingStore?: Store;
 
     /**
      * The broker URL to connect to. Default: "mqtt://127.0.0.1"

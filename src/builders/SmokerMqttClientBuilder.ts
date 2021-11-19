@@ -2,6 +2,7 @@ import {ISmokerMqttClient} from "../ISmokerMqttClient";
 import {SmokerMqttClient} from "../SmokerMqttClient";
 import {ISmokerMqttClientOptions} from "../SmokerMqttClientOptions";
 import {LastWill} from "../domain/LastWill";
+import {Store} from "mqtt/types/lib/store";
 
 export class SmokerMqttClientBuilder {
     private brokerUrl: string = "mqtt://127.0.0.1";
@@ -17,6 +18,20 @@ export class SmokerMqttClientBuilder {
     private lastWill: LastWill = null;
 
     private cleanSession: boolean = true
+
+    private incomingStore: Store = null
+
+    private outgoingStore: Store = null
+
+    public withIncomingStore(value: Store): SmokerMqttClientBuilder {
+        this.incomingStore = value;
+        return this;
+    }
+
+    public withOutgoingStore(value: Store): SmokerMqttClientBuilder {
+        this.outgoingStore = value;
+        return this;
+    }
 
     public withClaimTopic(value: string): SmokerMqttClientBuilder {
         this.claimTopic = value;
@@ -62,6 +77,8 @@ export class SmokerMqttClientBuilder {
             smokerAuthMethod: this.smokerAuthMethod,
             will: this.lastWill,
             clean: this.cleanSession,
+            incomingStore: this.incomingStore,
+            outgoingStore: this.outgoingStore
         })
     }
 }

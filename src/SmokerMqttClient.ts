@@ -224,6 +224,8 @@ export class SmokerMqttClient implements ISmokerMqttClient {
             protocolVersion: 5,
             clean: smokerOptions.clean,
             will: smokerOptions.will,
+            incomingStore: smokerOptions.incomingStore,
+            outgoingStore: smokerOptions.outgoingStore,
             properties: {
                 authenticationMethod: smokerOptions.smokerAuthMethod
             }
