@@ -32,9 +32,10 @@ export interface ISmokerMqttClient {
      * Publish to an already claimed topic
      * @param topic the topic to publish to. Can be either in smoker-format or not. If not it will be formatted correctly.
      * @param message the message to be published
+     * @param ownerClientId the owner's client ID (base32) of the topic. If empty, the clientID of this client will be taken.
      * @param opts the publish opts
      */
-    publishClaimed(topic: string, message: string | Buffer, opts?: IClientPublishOptions): Promise<Packet>;
+    publishClaimed(topic: string, message: string | Buffer, ownerClientId?: string, opts?: IClientPublishOptions): Promise<Packet>;
 
     /**
      * Normal subscription of one or several topics
@@ -44,9 +45,10 @@ export interface ISmokerMqttClient {
     /**
      * Subscribe to an already claimed topic
      * @param topic the topic to be subscribed. Can be either in smoker-format or not. If not it will be formatted correctly.
+     * @param ownerClientId the owner's client ID (base32) of the topic. If empty, the clientID of this client will be taken.
      * @param opts the subscription opts
      */
-    subscribeClaimed(topic: string, opts?: IClientSubscribeOptions): Promise<ISubscriptionGrant[]>;
+    subscribeClaimed(topic: string, ownerClientId?: string, opts?: IClientSubscribeOptions): Promise<ISubscriptionGrant[]>;
 
     /**
      * Unsubscribe a topic.
