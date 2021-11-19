@@ -40,7 +40,7 @@ client.connect(null).then(async (clientId) => {
 
         // publish claimed
         await client
-            .publishClaimed(testTopic, "Publish to my own topic is always allowed!", <IClientPublishOptions>{qos: 1})
+            .publishClaimed(testTopic, "Publish to my own topic is always allowed!", null, <IClientPublishOptions>{qos: 1})
             .catch(reason => {
                 console.error("Could not publish to claimed topic. reason:=" + reason)
             });

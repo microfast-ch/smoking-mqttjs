@@ -63,8 +63,8 @@ export class SmokerMqttClient implements ISmokerMqttClient {
     }
 
     /** @inheritDoc */
-    publishClaimed(topic: string, message: string | Buffer, opts?: IClientPublishOptions): Promise<Packet> {
-        let smokerTopic = this.smokerizeTopic(topic);
+    publishClaimed(topic: string, message: string | Buffer, ownerClientId?: string, opts?: IClientPublishOptions): Promise<Packet> {
+        let smokerTopic = this.smokerizeTopic(topic, ownerClientId);
         return this.publish(smokerTopic, message, opts);
     }
 
@@ -87,8 +87,8 @@ export class SmokerMqttClient implements ISmokerMqttClient {
     }
 
     /** @inheritDoc */
-    subscribeClaimed(topic: string, opts?: IClientSubscribeOptions): Promise<ISubscriptionGrant[]> {
-        let smokerTopic = this.smokerizeTopic(topic);
+    subscribeClaimed(topic: string, ownerClientId?: string, opts?: IClientSubscribeOptions): Promise<ISubscriptionGrant[]> {
+        let smokerTopic = this.smokerizeTopic(topic, ownerClientId);
         return this.subscribe(smokerTopic, opts);
     }
 
@@ -189,14 +189,17 @@ export class SmokerMqttClient implements ISmokerMqttClient {
      * Brings a topic to the smoker topic format. If the topic already starts with the configured restricted area prefix
      * it is guessd that the topci is already correct. Otherwise the topic is formatted correctly.
      * @param topic the topic to be formatted
+     * @param ownerClientId the owner's client ID of the topic. If empty the client ID of this client will be taken.
      * @private
      */
-    private smokerizeTopic(topic: string): string {
+    private smokerizeTopic(topic: string, ownerClientId?: string): string {
         if (topic.startsWith(this._opts.restrictedPrefix)) {
             console.debug("Guessing that the topic is already in correct format. topic:=" + topic);
             return topic;
         }
-        return this._opts.restrictedPrefix + '/' + this._clientId + '/' + topic;
+
+        const clientId = ownerClientId ? ownerClientId : this._clientId;
+        return this._opts.restrictedPrefix + '/' + clientId + '/' + topic;
     }
 
     /**
