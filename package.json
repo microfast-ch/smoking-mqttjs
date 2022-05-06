@@ -15,7 +15,7 @@
     "watch-ts": "tsc -w"
   },
   "dependencies": {
-    "libsodium-wrappers": "^0.7.9",
+    "libsodium-wrappers": "^0.7.10",
     "mqtt": "^4.3.7"
   },
   "devDependencies": {
