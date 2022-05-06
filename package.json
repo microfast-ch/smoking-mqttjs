@@ -1,6 +1,6 @@
 {
   "name": "smoking-mqttjs",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "A MQTTjs wrapper to make the use of a SMOKER broker more easy.",
   "keywords": [],
   "author": "microfast GmbH",
